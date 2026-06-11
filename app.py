@@ -1,22 +1,44 @@
 import streamlit as st
 import pandas as pd
+import os
+from datetime import datetime
 
-# Page Config
-st.set_page_config(
-    page_title="AI Smart Waste Collection",
-    page_icon="♻️",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Smart Waste Collection", page_icon="♻️", layout="wide")
 
-# Session State
+st.markdown("""
+<style>
+.main {
+    background: linear-gradient(135deg,#e8fff1,#f5f0ff);
+}
+.eco-card{
+    padding:15px;border-radius:15px;
+    background:#ffffff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+.bounce {
+  animation: bounce 2s infinite;
+}
+@keyframes bounce {
+  0%,20%,50%,80%,100% {transform: translateY(0);}
+  40% {transform: translateY(-10px);}
+  60% {transform: translateY(-5px);}
+}
+</style>
+""", unsafe_allow_html=True)
+
+DATA_FILE = "data.csv"
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "points" not in st.session_state:
+    st.session_state.points = 250
 
-# Login Page
 if not st.session_state.logged_in:
 
-    st.title("♻️ AI Smart Waste Collection")
-    st.subheader("Smart Waste Management System")
+    st.markdown("<h1 class='bounce'>♻️ AI Smart Waste Collection</h1>", unsafe_allow_html=True)
+    st.subheader("Smart Waste Management System 🌍")
 
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
@@ -29,109 +51,152 @@ if not st.session_state.logged_in:
         else:
             st.error("Please enter username and password")
 
-# Dashboard
 else:
 
-    st.title("📊 Waste Collection Dashboard")
+    st.title("📊 AI Smart Waste Dashboard")
+    st.success(f"Welcome {st.session_state.username} 🌱")
 
-    st.success(f"Welcome {st.session_state.username}")
+    if os.path.exists(DATA_FILE):
+        df = pd.read_csv(DATA_FILE)
+    else:
+        df = pd.DataFrame(columns=[
+            "Date","Area","Waste_Type","Weight_kg","Collection_Status"
+        ])
 
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
+    total_waste = df["Weight_kg"].sum() if len(df) else 0
 
-    col1.metric("♻️ Waste Collected", "1250 kg")
-    col2.metric("🚛 Active Trucks", "12")
-    col3.metric("🌱 CO₂ Saved", "540 kg")
-    col4.metric("🏆 Eco Points", "250")
-
-    st.divider()
-
-    # Buttons
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
-        st.button("🗑 Report Waste")
-
-    with c2:
-        st.button("📍 Track Collection")
-
-    with c3:
-        st.button("📷 Upload Waste Image")
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("♻️ Waste Collected", f"{total_waste} kg")
+    c2.metric("🚛 Active Trucks", "12")
+    c3.metric("🌱 CO₂ Saved", f"{int(total_waste*0.4)} kg")
+    c4.metric("🏆 Eco Points", st.session_state.points)
 
     st.divider()
 
-    # Waste Category
-    st.subheader("Waste Category")
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🗑 Report Waste",
+        "📷 Upload Image",
+        "🚛 Update Status",
+        "📊 Analytics"
+    ])
 
-    waste_type = st.selectbox(
-        "Select Waste Type",
-        ["Plastic", "Paper", "Metal", "Glass", "Organic"]
-    )
+    with tab1:
+        st.subheader("🗑 Report New Waste")
 
-    st.write("Selected Waste Type:", waste_type)
+        area = st.text_input("Area")
+        waste_type = st.selectbox(
+            "Waste Type",
+            ["Organic","Plastic","Metal","Paper","Glass"]
+        )
+        weight = st.number_input("Weight (kg)", min_value=0)
+
+        if st.button("Submit Waste Report"):
+            new_row = pd.DataFrame([{
+                "Date": datetime.now().strftime("%Y-%m-%d"),
+                "Area": area,
+                "Waste_Type": waste_type,
+                "Weight_kg": weight,
+                "Collection_Status": "Pending"
+            }])
+
+            df = pd.concat([df, new_row], ignore_index=True)
+            df.to_csv(DATA_FILE, index=False)
+
+            st.session_state.points += 10
+
+            st.success("🎉 Yay! Waste Report Submitted Successfully!")
+            st.balloons()
+
+    with tab2:
+        st.subheader("📷 Upload Waste Image")
+
+        image = st.file_uploader(
+            "Choose Image",
+            type=["jpg","jpeg","png"]
+        )
+
+        if image is not None:
+
+            file_path = os.path.join(UPLOAD_DIR, image.name)
+
+            with open(file_path, "wb") as f:
+                f.write(image.getbuffer())
+
+            st.image(image, width=300)
+            st.success("🌟 Image Uploaded Successfully!")
+
+    with tab3:
+        st.subheader("🚛 Update Collection Status")
+
+        if len(df):
+
+            area_update = st.selectbox(
+                "Select Area",
+                df["Area"].unique()
+            )
+
+            status = st.selectbox(
+                "Status",
+                ["Collected","Pending"]
+            )
+
+            if st.button("Update Status"):
+                df.loc[df["Area"] == area_update,
+                       "Collection_Status"] = status
+
+                df.to_csv(DATA_FILE, index=False)
+
+                st.success(f"✅ {area_update} updated to {status}")
+
+        else:
+            st.info("No data available")
+
+    with tab4:
+        st.subheader("📊 Analytics Dashboard")
+
+        if len(df):
+
+            st.dataframe(df)
+
+            area_chart = df.groupby("Area")["Weight_kg"].sum()
+            st.bar_chart(area_chart)
+
+            waste_chart = df.groupby("Waste_Type")["Weight_kg"].sum()
+            st.bar_chart(waste_chart)
+
+            status_counts = df["Collection_Status"].value_counts()
+            st.bar_chart(status_counts)
+
+            high_waste = df["Weight_kg"].max()
+
+            if high_waste > 100:
+                st.warning(
+                    "⚠️ Smart Alert: High Waste Detected!"
+                )
+
+        else:
+            st.info("Upload or add data to view analytics")
 
     st.divider()
 
-    # Image Upload
-    uploaded_image = st.file_uploader(
-        "Upload Waste Image",
-        type=["jpg", "jpeg", "png"]
-    )
-
-    if uploaded_image:
-        st.image(uploaded_image, width=300)
-        st.success(f"Waste Type: {waste_type}")
-
-    st.divider()
-
-    # Dataset Upload
-    st.subheader("Dataset Analysis")
-
-    uploaded_file = st.file_uploader(
-        "Upload CSV Dataset",
-        type=["csv"]
-    )
-
-    if uploaded_file is not None:
-
-        df = pd.read_csv(uploaded_file)
-
-        st.write("### Dataset Preview")
-        st.dataframe(df)
-
-        st.write("### Dataset Statistics")
-        st.write(df.describe())
-
-        if len(df.columns) > 1:
-            st.write("### Bar Chart")
-            st.bar_chart(df.iloc[:, 1])
-
-    st.divider()
-
-    # Eco Rewards
     st.subheader("🏆 Eco Rewards")
 
-    points = 250
+    st.progress(min(st.session_state.points / 500, 1.0))
+    st.write(f"Eco Points: {st.session_state.points}/500")
 
-    st.progress(points / 500)
+    if st.session_state.points >= 300:
+        st.success("🥇 Green Hero Badge Unlocked!")
 
-    st.write(f"Eco Points: {points}/500")
+    tips = [
+        "🌍 Recycling helps save energy.",
+        "♻️ Separate waste before disposal.",
+        "🌱 Organic waste can become compost.",
+        "✨ Small actions create a cleaner city."
+    ]
 
-    st.divider()
+    import random
+    st.info(random.choice(tips))
 
-    # Monthly Collection
-    st.subheader("📈 Monthly Collection")
-
-    monthly_data = pd.DataFrame({
-        "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-        "Waste": [120, 180, 200, 250, 300, 350]
-    })
-
-    st.line_chart(monthly_data.set_index("Month"))
-
-    st.divider()
-
-    # Logout
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
