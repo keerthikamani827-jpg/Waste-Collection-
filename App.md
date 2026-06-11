@@ -1,1 +1,1 @@
-https://1drv.ms/f/c/CF7AF64F780585BA/IgDC1ngjfDh0TZxZ3pQ3UVFOAd60Zlf0WW7zQJ57xmSFG0Y?e=TMxVic
+https://qm62zf3cm4cbcxnoewyncw.streamlit.app/
