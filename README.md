@@ -74,7 +74,3 @@ streamlit run app.py
 ## 👩‍💻 Developed By
 
 Keerthika M
-
-## 📄 License
-
-This project is developed for educational and research purposes.
