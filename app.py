@@ -2,36 +2,45 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
+import random
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
-    page_title="AI Smart Waste System",
-    page_icon="♻️",
+    page_title="Eco Hero Waste System",
+    page_icon="🌍",
     layout="wide"
 )
 
-# ---------------- PROFESSIONAL CSS ----------------
+# ---------------- PASTEL + ATTRACTIVE UI ----------------
 st.markdown("""
 <style>
 
 body {
-    background-color: #f4f6f9;
+    background: linear-gradient(135deg, #fdfbfb, #ebedee);
 }
 
 h1, h2, h3 {
-    color: #1f4e79;
+    color: #4b6cb7;
 }
 
 .stButton>button {
-    background: linear-gradient(90deg, #2b5876, #4e4376);
+    background: linear-gradient(90deg, #4b6cb7, #182848);
     color: white;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 10px;
     font-weight: bold;
 }
 
 .stButton>button:hover {
-    transform: scale(1.02);
+    transform: scale(1.05);
+    background: linear-gradient(90deg, #182848, #4b6cb7);
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
 }
 
 </style>
@@ -63,66 +72,70 @@ def save_data(df):
 
 df = load_data()
 
-# ---------------- LOGOUT FUNCTION ----------------
-def logout():
-    st.session_state.clear()
-    st.rerun()
-
-# ---------------- LOGIN PAGE ----------------
+# ---------------- LOGIN ----------------
 if not st.session_state.logged_in:
 
-    st.title("♻️ AI Smart Waste System")
+    st.title("🌍 Eco Hero Waste Management System")
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.write("♻️ Save Earth | Earn Points | Become Hero")
 
-    if st.button("Login"):
+    username = st.text_input("Enter Username")
+    password = st.text_input("Enter Password", type="password")
+
+    if st.button("🚀 Login"):
+
         if username and password:
             st.session_state.logged_in = True
             st.session_state.username = username
             st.rerun()
         else:
-            st.error("Enter username & password")
+            st.error("Please fill all fields")
 
 # ---------------- DASHBOARD ----------------
 else:
 
-    st.title(f"📊 Welcome {st.session_state.username}")
+    st.title(f"🌍 Welcome Eco Hero: {st.session_state.username}")
 
     total_waste = df["Weight_kg"].sum() if len(df) > 0 else 0
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Waste", f"{total_waste} kg")
-    c2.metric("Eco Points", st.session_state.points)
-    c3.metric("CO₂ Saved", f"{int(total_waste*0.4)} kg")
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("♻️ Total Waste", f"{total_waste} kg")
+    col2.metric("🏆 Eco Points", st.session_state.points)
+    col3.metric("🌱 CO₂ Saved", f"{int(total_waste*0.4)} kg")
+    col4.metric("🚛 Active Zones", len(df["Area"].unique()) if len(df)>0 else 0)
 
     st.divider()
 
-    tab1, tab2, tab3 = st.tabs([
-        "Report Waste",
-        "Upload Image",
-        "Analytics"
+    # ---------------- TABS ----------------
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🗑 Report Waste",
+        "📷 Upload Waste",
+        "📊 Dashboard",
+        "🤖 AI Assistant"
     ])
 
     # ---------------- REPORT ----------------
     with tab1:
 
-        st.subheader("Report Waste")
+        st.subheader("🗑 Report Waste")
 
-        area = st.text_input("Area")
-        waste = st.selectbox("Waste Type",
-                             ["Organic","Plastic","Metal","Paper","Glass"])
+        area = st.text_input("Area Name")
+        waste_type = st.selectbox(
+            "Waste Type",
+            ["Organic","Plastic","Metal","Paper","Glass"]
+        )
         weight = st.number_input("Weight (kg)", min_value=0.0)
 
         lat = st.number_input("Latitude")
         lon = st.number_input("Longitude")
 
-        if st.button("Submit"):
+        if st.button("Submit Report 🚀"):
 
             new = pd.DataFrame([{
                 "Date": datetime.now().strftime("%Y-%m-%d"),
                 "Area": area,
-                "Waste_Type": waste,
+                "Waste_Type": waste_type,
                 "Weight_kg": weight,
                 "Status": "Pending",
                 "Latitude": lat,
@@ -132,32 +145,34 @@ else:
             df = pd.concat([df, new], ignore_index=True)
             save_data(df)
 
-            st.session_state.points += 10
+            st.session_state.points += 15
 
-            st.success("Submitted Successfully!")
-            st.toast("Eco Points +10 🌱")
+            st.success("🎉 Report Added Successfully!")
+            st.toast("🌱 Eco Points +15", icon="🏆")
+            st.balloons()
 
     # ---------------- UPLOAD ----------------
     with tab2:
 
-        st.subheader("Upload Image")
+        st.subheader("📷 Upload Waste Image")
 
-        img = st.file_uploader("Choose Image", type=["jpg","png","jpeg"])
+        file = st.file_uploader("Upload Image", type=["jpg","png","jpeg"])
 
-        if img:
+        if file:
 
-            path = os.path.join(UPLOAD_DIR, img.name)
+            path = os.path.join(UPLOAD_DIR, file.name)
 
             with open(path, "wb") as f:
-                f.write(img.getbuffer())
+                f.write(file.getbuffer())
 
-            st.image(img, width=300)
+            st.image(file, caption="Uploaded Waste Image")
             st.success("Uploaded Successfully")
+            st.toast("📷 Nice Work!", icon="✨")
 
-    # ---------------- ANALYTICS ----------------
+    # ---------------- DASHBOARD ----------------
     with tab3:
 
-        st.subheader("Analytics")
+        st.subheader("📊 Smart Analytics Dashboard")
 
         if len(df) > 0:
 
@@ -165,13 +180,55 @@ else:
 
             st.bar_chart(df.groupby("Area")["Weight_kg"].sum())
             st.bar_chart(df.groupby("Waste_Type")["Weight_kg"].sum())
+            st.bar_chart(df["Status"].value_counts())
 
-            st.map(df[["Latitude","Longitude"]])
+            map_df = df.rename(columns={"Latitude":"lat","Longitude":"lon"})
+            st.map(map_df[["lat","lon"]])
+
+            if df["Weight_kg"].max() > 100:
+                st.warning("⚠️ High Waste Zone Detected!")
+                st.toast("🚨 Alert!", icon="⚠️")
 
         else:
-            st.info("No data available")
+            st.info("No data yet")
+
+    # ---------------- AI ASSISTANT ----------------
+    with tab4:
+
+        st.subheader("🤖 Eco AI Assistant")
+
+        q = st.text_input("Ask anything about waste data")
+
+        if q:
+
+            if "total" in q.lower():
+                st.success(f"Total Waste: {df['Weight_kg'].sum()} kg")
+
+            elif "plastic" in q.lower():
+                val = df[df["Waste_Type"]=="Plastic"]["Weight_kg"].sum()
+                st.success(f"Plastic Waste: {val} kg")
+
+            elif "most" in q.lower():
+                area = df.groupby("Area")["Weight_kg"].sum().idxmax()
+                st.success(f"Highest Waste Area: {area}")
+
+            elif "status" in q.lower():
+                st.write(df["Status"].value_counts())
+
+            else:
+                tips = [
+                    "🌱 Keep Earth Clean!",
+                    "♻️ Recycle Daily!",
+                    "🌍 Reduce Plastic Usage!",
+                    "🚛 Smart Waste = Smart City!"
+                ]
+                st.info(random.choice(tips))
 
     st.divider()
 
-    # ---------------- LOGOUT ----------------
-    st.button("🚪 Logout", on_click=logout)
+    # ---------------- FOOTER ----------------
+    st.success("🌍 Keep Saving Earth | Eco Hero System")
+
+    if st.button("🚪 Logout"):
+        st.session_state.clear()
+        st.rerun()
