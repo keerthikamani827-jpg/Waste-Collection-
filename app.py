@@ -193,10 +193,69 @@ else:
         "🌱 Organic waste can become compost.",
         "✨ Small actions create a cleaner city."
     ]
-
-    import random
+        import random
     st.info(random.choice(tips))
+
+    st.divider()
+
+    st.subheader("🤖 AI Waste Assistant")
+
+    question = st.text_input("Ask something about waste data")
+
+    if question:
+
+        if len(df) == 0:
+            st.warning("No waste data available.")
+
+        elif "most waste" in question.lower():
+
+            max_area = df.groupby("Area")["Weight_kg"].sum().idxmax()
+            max_weight = df.groupby("Area")["Weight_kg"].sum().max()
+
+            st.success(
+                f"📍 {max_area} generated the highest waste ({max_weight} kg)"
+            )
+
+        elif "pending" in question.lower():
+
+            pending = df[df["Collection_Status"] == "Pending"]
+
+            if len(pending) > 0:
+                st.success("🚛 Pending Collection Areas")
+                st.write(list(pending["Area"].unique()))
+            else:
+                st.success("✅ No pending collections")
+
+        elif "plastic" in question.lower():
+
+            plastic = df[df["Waste_Type"] == "Plastic"]["Weight_kg"].sum()
+
+            st.success(
+                f"♻️ Total Plastic Waste: {plastic} kg"
+            )
+
+        elif "organic" in question.lower():
+
+            organic = df[df["Waste_Type"] == "Organic"]["Weight_kg"].sum()
+
+            st.success(
+                f"🌱 Total Organic Waste: {organic} kg"
+            )
+
+        elif "total waste" in question.lower():
+
+            total = df["Weight_kg"].sum()
+
+            st.success(
+                f"🗑 Total Waste Collected: {total} kg"
+            )
+
+        else:
+            st.info(
+                "Try asking: most waste, pending collection, plastic waste, organic waste, or total waste."
+            )
 
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
+
